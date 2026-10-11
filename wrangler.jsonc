@@ -1,0 +1,82 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "machine",
+  "main": "apps/runtime/src/index.ts",
+  "compatibility_date": "2026-03-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+  "workers_dev": true,
+  "preview_urls": false,
+  // Frontend estático no MESMO Worker. API, rotas públicas e páginas HTML passam pelo código (meta tags da marca);
+  // JS, CSS, fontes e imagens vão direto para os arquivos.
+  "assets": {
+    "directory": "./apps/runtime/public",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/*", "!/*.js", "!/*.css", "!/fontes/*", "!/marcas/*"]
+  },
+  // Turnstile (opcional): `wrangler secret put TURNSTILE_SECRET` e defina TURNSTILE_SITEKEY aqui.
+  // DOMINIOS: domínio -> produto que responde na raiz (JSON em texto). Deixe {} para desativar.
+  // LOGIN_EMAIL: "ligado" habilita auth por magic link; "desligado" desativa.
+  "vars": {
+    "TURNSTILE_SITEKEY": "",
+    "EMAIL_REMETENTE": "Machine <noreply@seudominio.com.br>",
+    "LOGIN_EMAIL": "desligado",
+    "DOMINIOS": "{}"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      // Crie o banco antes do deploy: `wrangler d1 create machine`
+      // e cole o database_id retornado abaixo.
+      "database_name": "machine",
+      "database_id": "SEU-DATABASE-ID-AQUI",
+      "migrations_dir": "apps/runtime/migrations"
+    }
+  ],
+  // Cofre de evidências: bucket PRIVADO. Crie antes do deploy: `wrangler r2 bucket create machine-provas`.
+  // Nunca ative acesso público.
+  // Link mágico: Cloudflare Email Service. Em `wrangler dev` o envio é simulado (o e-mail aparece no log).
+  // Produção: o domínio do remetente precisa estar ativo e verificado no Email Service.
+  // Segredo da conta: `wrangler secret put SEGREDO_CONTA`.
+  "send_email": [{ "name": "EMAIL" }],
+  "r2_buckets": [{ "binding": "PROVAS", "bucket_name": "machine-provas" }],
+  // Confirma âncoras OpenTimestamps e reavalia casos abertos.
+  "triggers": { "crons": ["17 * * * *"] },
+  "workflows": [
+    { "name": "machine-caso", "binding": "CASO_WF", "class_name": "CasoWorkflow" }
+  ],
+  // Segredo de escrita: `wrangler secret put API_TOKEN` (local: `.dev.vars` na raiz).
+
+  // CÓPIA DE TESTE: outro Worker, com banco, cofre e workflow PRÓPRIOS. Nada aqui toca os dados de produção.
+  // Deploy: `npx wrangler deploy --env teste`.
+  "env": {
+    "teste": {
+      "name": "machine-teste",
+      "workers_dev": true,
+      "preview_urls": false,
+      "vars": {
+        "AMBIENTE": "teste",
+        "TURNSTILE_SITEKEY": "",
+        "EMAIL_REMETENTE": "Machine (teste) <noreply@seudominio.com.br>",
+        "LOGIN_EMAIL": "desligado",
+        "DOMINIOS": "{}"
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          // Crie o banco de teste: `wrangler d1 create machine-teste`
+          "database_name": "machine-teste",
+          "database_id": "SEU-DATABASE-ID-TESTE-AQUI",
+          "migrations_dir": "apps/runtime/migrations"
+        }
+      ],
+      "send_email": [{ "name": "EMAIL" }],
+      "r2_buckets": [{ "binding": "PROVAS", "bucket_name": "machine-provas-teste" }],
+      "triggers": { "crons": ["17 * * * *"] },
+      "workflows": [
+        { "name": "machine-caso-teste", "binding": "CASO_WF", "class_name": "CasoWorkflow" }
+      ]
+    }
+  }
+}

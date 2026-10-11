@@ -1,0 +1,7 @@
+export * from './produto'
+export * from './motor'
+export * from './cobertura'
+export * from './brasil'
+export * from './tela'
+export * from './preco'
+export * from './captura'
