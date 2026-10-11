@@ -8,7 +8,10 @@ import { pedidoCarimbo, lerRespostaCarimbo, hexDe } from '@maquina/kits'
 // Resposta REAL de um servidor RFC 3161 público (freetsa.org, NÃO é ICP-Brasil), gerada pelo próprio kit em 10/10/2026
 // e conferida com `openssl ts -verify` (Verification: OK). Serve para provar o formato, não o valor jurídico.
 const resposta = new Uint8Array(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'rfc3161-freetsa.tsr')))
-const hashDoManifesto = createHash('sha256').update('manifesto de teste do machine\n').digest('hex')
+// Este string foi o input usado quando o fixture rfc3161-freetsa.tsr foi gerado em 2026-10-10.
+// É apenas dado de teste — não representa nenhum produto. Para regenerar o fixture com outro string,
+// recalcule o hash, chame o freetsa.org via kit e salve a nova resposta em tests/fixtures/.
+const hashDoManifesto = createHash('sha256').update('manifesto de teste do tinhaprint\n').digest('hex')
 
 describe('carimbo de tempo RFC 3161', () => {
   it('monta um TimeStampReq DER válido (versão 1, sha256, nonce, certReq)', () => {
